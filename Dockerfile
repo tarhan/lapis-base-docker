@@ -5,7 +5,7 @@ MAINTAINER Dmitriy Lekomtsev <lekomtsev@gmail.com>
 # Based on Xe/docker-lapis
 
 ENV OPENRESTY_VERSION 1.9.15.1
-ENV LAPIS_VERSION 1.4.1
+ENV LAPIS_VERSION 1.4.2
 ENV LUAROCKS_VERSION 2.3.0
 
 ENV SRC_DIR /opt
