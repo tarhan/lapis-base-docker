@@ -40,7 +40,7 @@ if app.dependencies
         command = command .. package
       f = io.popen command, "r"
       for line in f\lines!
-        print "[Buildtime deps]: #{line}"
+        print "[Buildtime deps Install]: #{line}"
 
       assert f\close!
 
@@ -52,21 +52,36 @@ if app.dependencies
     command = 'apk --no-cache add --virtual luarocks-buildtime-dependencies build-base git cmake'
     f = io.popen command, "r"
     for line in f\lines!
-      print "[Luarocks deps]: #{line}"
+      print "[Luarocks deps][Buildtime Install]: #{line}"
 
     assert f\close!
 
     for _, dep in pairs app.dependencies.luarocks
       print "[Luarocks deps]: Installing luarocks package #{dep}"
-      read_cmd "luarocks install #{dep}"
+      command = "luarocks install #{dep}"
+      f = io.popen command, "r"
+      for line in f\lines!
+        print "[Luarocks deps][#{dep}]: #{line}"
+
+      assert f\close!
 
     print "[Luarocks deps]: Removing luarocks buildtime dependencies"
-    read_cmd "apk del luarocks-buildtime-dependencies"
+    command = "apk del luarocks-buildtime-dependencies"
+    f = io.popen command, "r"
+    for line in f\lines!
+      print "[Luarocks deps][Buildtime Clean]: #{line}"
+
+    assert f\close!
 
 if app.dependencies
   if app.dependencies.alpine
     if app.dependencies.alpine.buildtime
       print "[Buildtime deps]: Removing buildtime OS dependencies"
-      read_cmd "apk del buildtime-dependencies"
+      command = "apk del buildtime-dependencies"
+      f = io.popen command, "r"
+      for line in f\lines!
+        print "[Buildtime deps Clean]: #{line}"
+
+      assert f\close!
 
 print "done!"

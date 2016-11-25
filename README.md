@@ -23,17 +23,15 @@ dependencies:
       - openssl
     buildtime:
       - openssl-dev
-  lua:    
+  luarocks:    
     - luasec
 ```
 
-Here in an example you want to install **luasec** package
-via **luarocks**. Luarocks tries to build package from source code
-so it needs its headers files. In this case headers files located
-inside **openssl-dev** Alpine OS package so we specify it under
-**dependencies.alpine.buildtime** key. Since **luasec**
-depends on **openssl** at runtime also so we specify it
-under **dependencies.alpine.runtime** key.  
+Here in the example you want to install **luasec** package via **luarocks**.  
+Luarocks tries to build package from source code so it need its headers files.  
+In this case headers files located inside **openssl-dev** Alpine OS package so we specify it under **dependencies.alpine.buildtime** key.  
+Since **luasec** depends on **openssl** at runtime also so we specify it under
+**dependencies.alpine.runtime** key.  
 All OS packages spicified under **dependencies.alpine.buildtime** key
 will be removed after building your container.
 
@@ -47,22 +45,25 @@ inside your project root.
 ```sh
 docker run --rm -it -p 8080:8080 tarhan/lapis:1.5.1 server
 ```
+
 Result will be similar to executing following command from your
-project root:
+project root:  
+
 ```sh
 lapis server
 ```
 
 ## Docker Compose
 
-For Docker Compose you can create **docker-compose.yml**
-similar to following:
+Using Docker Compose you can create **docker-compose.yml**
+similar to following:  
+
 ```yaml
 version: "2"
 services:
   web:
     build: .
-    command: server
+    command: server development
     volumes:
       - .:/app/src
       - ./logs:/app/src/logs
