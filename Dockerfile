@@ -1,107 +1,99 @@
-FROM alpine:3.4
+FROM openresty/openresty:alpine
 
 MAINTAINER Dmitriy Lekomtsev <lekomtsev@gmail.com>
 
-# Based on Xe/docker-lapis
-
-ENV OPENRESTY_VERSION 1.11.2.2
-ENV LAPIS_VERSION 1.5.1-1
-ENV LUAROCKS_VERSION 2.4.1
+ENV LAPIS_VERSION 1.6.0-1
+ENV RESTY_LUAROCKS_VERSION="2.3.0"
 
 ENV SRC_DIR /opt
 ENV OPENRESTY_PREFIX /opt/openresty
 ENV LAPIS_ENVIRONMENT docker
 ENV LAPIS_OPENRESTY $OPENRESTY_PREFIX/nginx/sbin/nginx
 
-RUN   mkdir -p $SRC_DIR \
-  &&  mkdir -p /app/src \
-  &&  mkdir -p /app/src/logs \
-# Create temp folders for nginx
-  &&  mkdir -p /app/tmp/client_temp \
-  &&  mkdir -p /app/tmp/proxy_temp \
-  &&  mkdir -p /app/tmp/fastcgi_temp \
-  &&  mkdir -p /app/tmp/uwsgi_temp \
-  &&  mkdir -p /app/tmp/scgi_temp \
-# Installing runtime dependecies of openresty, luarocks
-  &&  apk --no-cache add \
-        pcre \
-        openssl \
-        readline \
-        curl \
-        libgcc \
-        unzip \
-        libstdc++ \
-# Temporary installing build dependencies for openresty and luarocks
-  &&  apk --no-cache add --virtual build-dependencies \
-        build-base \
-        cmake \
-        openssl-dev \
-        git \
-        readline-dev \
-        curl-dev \
-        perl \
-        pcre-dev \
-  &&  cd $SRC_DIR \
-# Installing openresty
-  &&  curl -LO https://openresty.org/download/openresty-$OPENRESTY_VERSION.tar.gz \
-  &&  tar xzf openresty-$OPENRESTY_VERSION.tar.gz \
-  &&  cd openresty-$OPENRESTY_VERSION \
-  &&  ./configure --prefix=$OPENRESTY_PREFIX \
-        --with-luajit \
-        --with-pcre-jit \
-        --with-ipv6 \
-        --with-http_realip_module \
-        --http-client-body-temp-path=/app/tmp/client_temp \
-        --http-proxy-temp-path=/app/tmp/proxy_temp \
-        --http-fastcgi-temp-path=/app/tmp/fastcgi_temp \
-        --http-uwsgi-temp-path=/app/tmp/uwsgi_temp \
-        --http-scgi-temp-path=/app/tmp/scgi_temp \
-  &&  make \
-  &&  make install \
-  &&  cd $SRC_DIR \
-  &&  rm -rf openresty-$OPENRESTY_VERSION* \
+RUN mkdir -p /app/src \
+ && cd tmp/ \
+# Installing build dependencies for Lapis and luarocks
+ && echo "#### Installing build dependencies" \
+ && apk --no-cache add \
+      openssl \
+ && apk --no-cache add --virtual .build-deps \
+      curl \
+      build-base \
+      cmake \
+      git \
+      unzip \
+      openssl-dev \
 # Installing luarocks
-  &&  curl -LO http://keplerproject.github.io/luarocks/releases/luarocks-$LUAROCKS_VERSION.tar.gz \
-  &&  tar xzf luarocks-$LUAROCKS_VERSION.tar.gz \
-  &&  cd luarocks-$LUAROCKS_VERSION \
-  &&  ./configure \
-        --lua-suffix=jit \
-        --with-lua=/opt/openresty/luajit \
-        --with-lua-include=/opt/openresty/luajit/include/luajit-2.1 \
-        --with-downloader=curl \
-  &&  make build \
-  &&  make install \
-  &&  cd $SRC_DIR \
-  &&  rm -rf luarocks-$LUAROCKS_VERSION* \
-# Installing lapis, moonscript, yaml
-  &&  luarocks install luasec \
-  &&  luarocks install --server=http://rocks.moonscript.org/manifests/leafo lapis $LAPIS_VERSION \
-  &&  luarocks install moonscript \
-  &&  luarocks install lapis-console \
-  &&  luarocks install yaml \
-  &&  apk del build-dependencies \
-# Installing minimal init system for container
-# as defence from https://blog.phusion.nl/2015/01/20/docker-and-the-pid-1-zombie-reaping-problem/
-  &&  curl -L https://github.com/krallin/tini/releases/download/v0.9.0/tini-static -o tini \
-  &&  mv tini /usr/local/bin/tini \
-  &&  chmod +x /usr/local/bin/tini
+ && echo "#### Installing luarocks" \
+ && curl -fSL http://luarocks.org/releases/luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+      -o luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+ && tar xzf luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+ && cd luarocks-${RESTY_LUAROCKS_VERSION} \
+ && ./configure --prefix=/usr/local/openresty/luajit \
+      --with-lua=/usr/local/openresty/luajit \
+      --lua-suffix=jit-2.1.0-beta3 \
+      --with-lua-include=/usr/local/openresty/luajit/include/luajit-2.1 \
+ && make build \
+ && make install \
+ && cd /tmp \
+ && rm -rf luarocks-${RESTY_LUAROCKS_VERSION} \
+      luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+ && echo "#### Installing lua-cjson" \
+# Installing lua-cjson from master branch of its git repo
+ && git clone https://github.com/openresty/lua-cjson.git \
+ && cd lua-cjson \
+ && luarocks make \
+ && cd /tmp \
+ && rm -rf lua-cjson \
+ && echo "#### Installing Lapis" \
+# Installing Lapis via luarocks
+ && luarocks install lapis \
+ && apk del .build-deps
 
-COPY prepare.moon /app/prepare.moon
-# COPY lapis /app/lapis
+COPY preinstall.moon /app/preinstall.moon
 
 WORKDIR /app/src
 
-# Due lapis's architecture bug it is always create logs folder under app folder
-# That is why I'm creating volume under app/src subfolder
-VOLUME ["/app/src/logs"]
-
 EXPOSE 8080
-EXPOSE 80
 
-ENTRYPOINT ["tini", "--", "lapis"]
-
+ENTRYPOINT ["lapis"]
 ONBUILD ADD app.yml /app/
-ONBUILD RUN moon /app/prepare.moon /app/app.yml
+ONBUILD RUN cd /tmp \
+# Installing luarocks
+ && echo "#### Installing luarocks" \
+ && apk --no-cache add --virtual .build-deps \
+      curl \
+      build-base \
+      cmake \
+      git \
+      unzip \
+      tar \
+ && curl -fSL http://luarocks.org/releases/luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+      -o luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+ && tar xzf luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+ && cd luarocks-${RESTY_LUAROCKS_VERSION} \
+ && ./configure --prefix=/usr/local/openresty/luajit \
+      --with-lua=/usr/local/openresty/luajit \
+      --lua-suffix=jit-2.1.0-beta3 \
+      --with-lua-include=/usr/local/openresty/luajit/include/luajit-2.1 \
+ && make build \
+ && make install \
+ && cd /tmp \
+ && rm -rf luarocks-${RESTY_LUAROCKS_VERSION} \
+      luarocks-${RESTY_LUAROCKS_VERSION}.tar.gz \
+ && echo "#### Installing lua-cjson" \
+# Installing lua-cjson from master branch of its git repo
+ && git clone https://github.com/openresty/lua-cjson.git \
+ && cd lua-cjson \
+ && luarocks make \
+ && cd /tmp \
+ && rm -rf lua-cjson \
+ && echo "#### Installing Lapis" \
+# Installing Lapis via luarocks
+ && luarocks install lapis \
+ && luarocks install moonscript \
+ && moon /app/preinstall.moon /app/app.yml \
+ && apk del .build-deps
 ONBUILD ADD . /app/src
 ONBUILD RUN moonc /app/src
 
