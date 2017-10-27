@@ -11,8 +11,8 @@ Your parent Docker image should be like this.
 FROM tarhan/lapis:latest
 ```
 
-In your project root where Dockerfile located create **app.yaml** manifest
-structure according to following example:
+In your project root where ```Dockerfile``` located create **app.yml** manifest
+structure according as in following example:
 
 ```yaml
 name: "yourproject"
@@ -27,12 +27,12 @@ dependencies:
     - luasec
 ```
 
-Here in the example you want to install **luasec** package via **luarocks**.  
+Here in the example **luasec** package will be installed package **luarocks**.
 Luarocks tries to build package from source code so it need its headers files.  
-In this case headers files located inside **openssl-dev** Alpine OS package so we specify it under **dependencies.alpine.buildtime** key.  
-Since **luasec** depends on **openssl** at runtime also so we specify it under
+In this case **luasec** packages requires **openssl** headers files located inside **openssl-dev** Alpine OS package so we've specified it under **dependencies.alpine.buildtime** key.  
+Since **luasec** depends on **openssl** at runtime so we've also specified it under
 **dependencies.alpine.runtime** key.  
-All OS packages spicified under **dependencies.alpine.buildtime** key
+All OS packages were been specified under **dependencies.alpine.buildtime** key
 will be removed after building your container.
 
 # Usage after building
@@ -43,7 +43,7 @@ inside your project root.
 ## Docker run
 
 ```sh
-docker run --rm -it -p 8080:8080 tarhan/lapis:1.5.1 server
+docker run --rm -it -p 8080:8080 tarhan/lapis:latest server
 ```
 
 Result will be similar to executing following command from your
@@ -66,7 +66,7 @@ services:
     command: server development
     volumes:
       - .:/app/src
-      - ./logs:/app/src/logs
+      - ./logs:/usr/local/openresty/nginx/logs
     ports:
       - "8080:8080"
 ```
