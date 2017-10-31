@@ -47,6 +47,7 @@ RUN mkdir -p /app/src \
  && rm -rf lua-cjson \
  && echo "#### Installing Lapis" \
 # Installing Lapis via luarocks
+ && luarocks install yaml \
  && luarocks install lapis \
  && apk del .build-deps
 
@@ -90,6 +91,7 @@ ONBUILD RUN cd /tmp \
  && rm -rf lua-cjson \
  && echo "#### Installing Lapis" \
 # Installing Lapis via luarocks
+ && luarocks install yaml \
  && luarocks install lapis \
  && luarocks install moonscript \
  && moon /app/preinstall.moon /app/app.yml \
