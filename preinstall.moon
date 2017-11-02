@@ -1,5 +1,5 @@
 
-yaml = require "yaml"
+yaml = require "lyaml"
 
 manifest_path = ...
 
