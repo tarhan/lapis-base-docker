@@ -13,9 +13,10 @@ ENV LAPIS_OPENRESTY $OPENRESTY_PREFIX/nginx/sbin/nginx
 RUN mkdir -p /app/src \
  && cd tmp/ \
 # Installing build dependencies for Lapis and luarocks
- && echo "#### Installing build dependencies" \
  && apk --no-cache add \
       openssl \
+      yaml \
+ && echo "#### Installing build dependencies" \
  && apk --no-cache add --virtual build-deps \
       curl \
       build-base \
@@ -57,7 +58,7 @@ RUN mkdir -p /app/src \
  && echo "#### Removing dev dependencies" \
  && apk del build-deps
 
-COPY preinstall.moon /app/preinstall.moon
+COPY preinstall*.moon /app/
 
 WORKDIR /app/src
 
@@ -67,7 +68,9 @@ ENTRYPOINT ["lapis"]
 ONBUILD ADD app.yml /app/
 ONBUILD RUN cd /tmp \
 # Installing luarocks
- && echo "#### Installing luarocks dev utils" \
+ && echo "#### Installing runtime dependencies before any dev dependencies" \
+ && moon /app/preinstall_runtime.moon /app/app.yml \
+ && echo "#### Installing luarocks common buildtime deps" \
  && apk --no-cache add --virtual build-deps \
       curl \
       build-base \

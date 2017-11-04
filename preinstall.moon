@@ -18,26 +18,12 @@ fin\close!
 
 if app.dependencies
   if app.dependencies.alpine
-    if app.dependencies.alpine.runtime
-      print "[Runtime deps]: Found runtime OS dependencies. App: #{app.name or "this application"}"
-
-      command = 'apk --no-cache add '
-      for step, package in pairs app.dependencies.alpine.runtime
-        command = command .. package
-      f = io.popen command, "r"
-      for line in f\lines!
-        print "[Runtime deps]: #{line}"
-
-      assert f\close!
-
-if app.dependencies
-  if app.dependencies.alpine
     if app.dependencies.alpine.buildtime
       print "[Buildtime deps]: Found buildtime OS dependencies. App: #{app.name or "this application"}"
 
       command = 'apk --no-cache add --virtual buildtime-dependencies '
       for step, package in pairs app.dependencies.alpine.buildtime
-        command = command .. package
+        command = command .. package .. ' '
       f = io.popen command, "r"
       for line in f\lines!
         print "[Buildtime deps Install]: #{line}"
